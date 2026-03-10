@@ -1,4 +1,4 @@
-import 'package:fin_track/models/user.dart';
+import 'package:fin_track/features/autenticacao/domain/models/user.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -11,9 +11,9 @@ void main() {
         'id': 'u1',
         'name': 'Guilherme',
         'email': 'gui@email.com',
-        'currencyCode': 'BRL',
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
+        'currency_code': 'BRL',
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
       final user = User.fromJson(json);
@@ -45,9 +45,9 @@ void main() {
         'id': 'u1',
         'name': 'Guilherme',
         'email': 'gui@email.com',
-        'currencyCode': 'BRL',
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
+        'currency_code': 'BRL',
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       });
     });
 

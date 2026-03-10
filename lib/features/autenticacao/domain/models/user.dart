@@ -3,7 +3,6 @@ class User {
     required this.id,
     required this.name,
     required this.email,
-    required this.password,
     required this.currencyCode,
     required this.createdAt,
     this.updatedAt,
@@ -12,7 +11,6 @@ class User {
   final String id;
   final String name;
   final String email;
-  final String password;
   final String currencyCode;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -22,11 +20,10 @@ class User {
       id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
-      password: json['password'] as String,
-      currencyCode: json['currencyCode'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
+      currencyCode: json['currency_code'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
           : null,
     );
   }
@@ -36,10 +33,9 @@ class User {
       'id': id,
       'name': name,
       'email': email,
-      'password': password,
-      'currencyCode': currencyCode,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      'currency_code': currencyCode,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -47,7 +43,6 @@ class User {
     String? id,
     String? name,
     String? email,
-    String? password,
     String? currencyCode,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -57,7 +52,6 @@ class User {
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
-      password: password ?? this.password,
       currencyCode: currencyCode ?? this.currencyCode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: clearUpdatedAt ? null : updatedAt ?? this.updatedAt,
@@ -69,23 +63,11 @@ class User {
     if (identical(this, other)) return true;
 
     return other is User &&
-        other.id == id &&
-        other.name == name &&
-        other.email == email &&
-        other.password == password &&
-        other.currencyCode == currencyCode &&
-        other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.id == id;
   }
 
   @override
   int get hashCode {
-    return id.hashCode ^
-        name.hashCode ^
-        email.hashCode ^
-        password.hashCode ^
-        currencyCode.hashCode ^
-        createdAt.hashCode ^
-        updatedAt.hashCode;
+    return id.hashCode;
   }
 }
