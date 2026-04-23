@@ -1,7 +1,7 @@
 import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
-import 'package:fin_track/features/autenticacao/presentation/screens/login_screen.dart';
-import 'package:fin_track/features/catalogo/presentation/screens/new_transaction_screen.dart';
+import 'package:fin_track/core/router/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,25 +43,17 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const LoginScreen(),
-                ),
-              );
+              AppRouter.auth.logout();
             },
-            icon: const Icon(Icons.login),
-            tooltip: 'Ir para login',
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
           ),
         ],
       ),
       body: _buildDashboard(context),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const NewTransactionScreen(),
-            ),
-          );
+          context.go('/transacoes/nova');
         },
         icon: const Icon(Icons.add),
         label: const Text('Nova'),

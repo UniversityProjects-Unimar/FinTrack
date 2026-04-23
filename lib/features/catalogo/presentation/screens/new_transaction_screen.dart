@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class NewTransactionScreen extends StatefulWidget {
   const NewTransactionScreen({super.key});
@@ -124,6 +125,6 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
       const SnackBar(content: Text('Transacao salva com sucesso')),
     );
 
-    Navigator.of(context).pop();
+    context.pop();
   }
 }

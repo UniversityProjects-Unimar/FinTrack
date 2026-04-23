@@ -1,5 +1,5 @@
-import 'package:fin_track/features/catalogo/presentation/screens/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:fin_track/core/router/app_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,11 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 48,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                        );
+                        AppRouter.auth.login();
                       },
                       child: const Text('Entrar'),
                     ),
