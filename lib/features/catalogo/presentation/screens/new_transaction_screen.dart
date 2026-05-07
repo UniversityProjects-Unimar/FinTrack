@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 class NewTransactionScreen extends StatefulWidget {
@@ -12,13 +13,21 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _valueController = TextEditingController();
   final _descriptionController = TextEditingController();
+
+  final _categoryFocus = FocusNode();
+  final _descriptionFocus = FocusNode();
+
   String _selectedCategory = 'Mercado';
   DateTime _selectedDate = DateTime.now();
+
+  bool _isSaving = false;
 
   @override
   void dispose() {
     _valueController.dispose();
     _descriptionController.dispose();
+    _categoryFocus.dispose();
+    _descriptionFocus.dispose();
     super.dispose();
   }
 
@@ -27,64 +36,101 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
     final isSmall = MediaQuery.of(context).size.width < 360;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nova transacao')),
+      appBar: AppBar(title: const Text('Nova transação')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
                 controller: _valueController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).requestFocus(_categoryFocus);
+                },
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  LengthLimitingTextInputFormatter(16),
+                ],
                 decoration: const InputDecoration(
                   labelText: 'Valor',
+                  hintText: '0,00',
+                  prefixIcon: Icon(Icons.attach_money),
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+                  final text = value?.trim() ?? '';
+                  if (text.isEmpty) {
                     return 'Informe o valor';
+                  }
+
+                  final normalized = text
+                      .replaceAll('.', '')
+                      .replaceAll(',', '.');
+                  final parsed = double.tryParse(normalized);
+                  if (parsed == null) {
+                    return 'Informe um valor válido';
+                  }
+                  if (parsed <= 0) {
+                    return 'O valor deve ser maior que zero';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
+                focusNode: _categoryFocus,
                 items: const [
                   DropdownMenuItem(value: 'Mercado', child: Text('Mercado')),
-                  DropdownMenuItem(value: 'Transporte', child: Text('Transporte'),),
+                  DropdownMenuItem(
+                    value: 'Transporte',
+                    child: Text('Transporte'),
+                  ),
                   DropdownMenuItem(value: 'Lazer', child: Text('Lazer')),
-                  DropdownMenuItem(value: 'Saude', child: Text('Saude')),
+                  DropdownMenuItem(value: 'Saúde', child: Text('Saúde')),
                 ],
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _selectedCategory = value);
+                    FocusScope.of(context).requestFocus(_descriptionFocus);
                   }
                 },
                 decoration: const InputDecoration(
                   labelText: 'Categoria',
+                  prefixIcon: Icon(Icons.category_outlined),
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
+                focusNode: _descriptionFocus,
                 maxLines: 3,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _save(),
                 decoration: const InputDecoration(
-                  labelText: 'Descricao',
+                  labelText: 'Descrição',
+                  hintText: 'Ex: Compra no mercado',
+                  prefixIcon: Icon(Icons.description_outlined),
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Card(
                 child: ListTile(
+                  leading: const Icon(Icons.calendar_month),
                   title: const Text('Data'),
                   subtitle: Text(
                     '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                   ),
-                  trailing: const Icon(Icons.calendar_month),
+                  trailing: const Icon(Icons.chevron_right),
                   onTap: _pickDate,
                 ),
               ),
@@ -92,8 +138,14 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _save,
-                  child: const Text('Salvar transacao'),
+                  onPressed: _isSaving ? null : _save,
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar transação'),
                 ),
               ),
             ],
@@ -116,15 +168,28 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) return;
+
     if (_formKey.currentState?.validate() != true) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transacao salva com sucesso')),
-    );
+    FocusScope.of(context).unfocus();
+    setState(() => _isSaving = true);
 
-    context.pop();
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transação salva com sucesso')),
+      );
+      context.pop();
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 }
