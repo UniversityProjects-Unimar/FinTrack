@@ -1,5 +1,6 @@
-import 'package:fin_track/core/router/app_router.dart';
+import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 150));
-      AppRouter.auth.login();
+      context.read<AuthProvider>().login(email: _emailController.text.trim());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

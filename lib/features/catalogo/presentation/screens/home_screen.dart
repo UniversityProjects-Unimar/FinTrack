@@ -1,7 +1,8 @@
-import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
-import 'package:fin_track/core/router/app_router.dart';
+import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
+import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,29 +12,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Transaction> _recentTransactions = [
-    Transaction(
-      id: 't1',
-      amount: 80,
-      category: 'Mercado',
-      description: 'Compra semanal',
-      createdAt: DateTime(2026, 4, 1),
-    ),
-    Transaction(
-      id: 't2',
-      amount: 35,
-      category: 'Transporte',
-      description: 'Combustivel',
-      createdAt: DateTime(2026, 4, 2),
-    ),
-    Transaction(
-      id: 't3',
-      amount: 120,
-      category: 'Lazer',
-      description: 'Cinema e lanche',
-      createdAt: DateTime(2026, 4, 4),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<TransactionsProvider>().load();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              AppRouter.auth.logout();
+              context.read<AuthProvider>().logout();
             },
             icon: const Icon(Icons.logout),
             tooltip: 'Sair',
@@ -102,27 +90,113 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          const _CategoryFilters(),
+          const SizedBox(height: 12),
           Expanded(
-            child: ListView.separated(
-              itemCount: _recentTransactions.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = _recentTransactions[index];
-                return ListTile(
-                  tileColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  leading: const CircleAvatar(child: Icon(Icons.attach_money)),
-                  title: Text(item.category),
-                  subtitle: Text(item.description),
-                  trailing: Text('R\$ ${item.amount.toStringAsFixed(2)}'),
+            child: Consumer<TransactionsProvider>(
+              builder: (context, store, child) {
+                if (store.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (store.error != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 8),
+                        Text(store.error!),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () =>
+                              context.read<TransactionsProvider>().load(),
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final items = store.items;
+                if (items.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhuma transação encontrada.'),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      tileColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.attach_money),
+                      ),
+                      title: Text(item.category),
+                      subtitle: Text(item.description),
+                      trailing: Text('R\$ ${item.amount.toStringAsFixed(2)}'),
+                    );
+                  },
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CategoryFilters extends StatelessWidget {
+  const _CategoryFilters();
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCategory = context
+        .watch<TransactionsProvider>()
+        .categoryFilter;
+
+    return Selector<TransactionsProvider, List<String>>(
+      selector: (context, store) => store.categories,
+      builder: (context, categories, child) {
+        if (categories.isEmpty) return const SizedBox.shrink();
+
+        return SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: const Text('Todos'),
+                  selected: selectedCategory.isEmpty,
+                  onSelected: (_) =>
+                      context.read<TransactionsProvider>().clearFilter(),
+                ),
+              ),
+              for (final category in categories)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(category),
+                    selected: selectedCategory == category,
+                    onSelected: (_) => context
+                        .read<TransactionsProvider>()
+                        .filterByCategory(category),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

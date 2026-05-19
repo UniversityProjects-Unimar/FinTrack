@@ -1,4 +1,6 @@
+import 'package:fin_track/core/di/service_locator.dart';
 import 'package:fin_track/features/autenticacao/presentation/screens/login_screen.dart';
+import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
 import 'package:fin_track/features/catalogo/presentation/screens/home_screen.dart';
 import 'package:fin_track/features/catalogo/presentation/screens/new_transaction_screen.dart';
 import 'package:flutter/material.dart';
@@ -25,24 +27,8 @@ class _ConfiguracaoAba {
   });
 }
 
-class AuthState extends ChangeNotifier {
-  bool _isAuthenticated = false;
-
-  bool get isAuthenticated => _isAuthenticated;
-
-  void login() {
-    _isAuthenticated = true;
-    notifyListeners();
-  }
-
-  void logout() {
-    _isAuthenticated = false;
-    notifyListeners();
-  }
-}
-
 class AppRouter {
-  static final AuthState auth = AuthState();
+  static final AuthProvider auth = getIt<AuthProvider>();
 
   static final GoRouter router = GoRouter(
     refreshListenable: auth,
@@ -62,10 +48,7 @@ class AppRouter {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _TelaBase(navigationShell: navigationShell);

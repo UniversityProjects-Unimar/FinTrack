@@ -1,6 +1,8 @@
+import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class NewTransactionScreen extends StatefulWidget {
   const NewTransactionScreen({super.key});
@@ -180,6 +182,17 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
 
     try {
       await Future<void>.delayed(const Duration(milliseconds: 250));
+
+      final valueText = _valueController.text.trim();
+      final normalized = valueText.replaceAll('.', '').replaceAll(',', '.');
+      final parsed = double.parse(normalized);
+
+      await context.read<TransactionsProvider>().add(
+        amount: parsed,
+        category: _selectedCategory,
+        description: _descriptionController.text.trim(),
+        createdAt: _selectedDate,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
