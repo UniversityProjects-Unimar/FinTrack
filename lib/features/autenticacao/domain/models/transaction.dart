@@ -13,13 +13,34 @@ class Transaction {
   final String description;
   final DateTime createdAt;
 
+  Map<String, dynamic> toSimpleSqliteMap({required String userId}) {
+    return {
+      'id': id,
+      'user_id': userId,
+      'amount': amount,
+      'category': category,
+      'description': description,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  factory Transaction.fromSimpleSqliteMap(Map<String, dynamic> map) {
+    return Transaction(
+      id: map['id'] as String,
+      amount: (map['amount'] as num).toDouble(),
+      category: map['category'] as String,
+      description: map['description'] as String? ?? '',
+      createdAt: DateTime.parse(map['created_at'] as String),
+    );
+  }
+
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'] as String,
       amount: (json['amount'] as num).toDouble(),
       category: json['category'] as String,
       description: json['description'] as String? ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String)
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 
@@ -29,7 +50,7 @@ class Transaction {
       'amount': amount,
       'category': category,
       'description': description,
-      'created_at': createdAt
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
@@ -38,26 +59,26 @@ class Transaction {
     double? amount,
     String? category,
     String? description,
-    DateTime? createdAt
+    DateTime? createdAt,
   }) {
     return Transaction(
       id: id ?? this.id,
       amount: amount ?? this.amount,
       category: category ?? this.category,
       description: description ?? this.description,
-      createdAt: createdAt ?? this.createdAt
+      createdAt: createdAt ?? this.createdAt,
     );
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Transaction &&
-      other.id == id &&
-      other.amount == amount &&
-      other.category == category &&
-      other.description == description &&
-      other.createdAt == createdAt;
+        other.id == id &&
+        other.amount == amount &&
+        other.category == category &&
+        other.description == description &&
+        other.createdAt == createdAt;
   }
 
   @override

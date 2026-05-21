@@ -18,7 +18,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<TransactionsProvider>().load();
+        final userId = context.read<AuthProvider>().user?.id;
+        if (userId != null) {
+          context.read<TransactionsProvider>().load(userId: userId);
+        }
       }
     });
   }
@@ -110,7 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () =>
-                              context.read<TransactionsProvider>().load(),
+                              context.read<TransactionsProvider>().load(
+                                userId: context.read<AuthProvider>().user!.id,
+                                forceReload: true,
+                              ),
                           child: const Text('Tentar novamente'),
                         ),
                       ],

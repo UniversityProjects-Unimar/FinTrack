@@ -9,10 +9,8 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _user != null;
 
   void login({required String email}) {
-    _user = LoggedUser(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      email: email,
-    );
+    final normalizedEmail = email.trim().toLowerCase();
+    _user = LoggedUser(id: normalizedEmail, email: normalizedEmail);
     notifyListeners();
   }
 

@@ -1,3 +1,4 @@
+import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
 import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -187,7 +188,13 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
       final normalized = valueText.replaceAll('.', '').replaceAll(',', '.');
       final parsed = double.parse(normalized);
 
+      final userId = context.read<AuthProvider>().user?.id;
+      if (userId == null) {
+        throw StateError('Usuário não autenticado.');
+      }
+
       await context.read<TransactionsProvider>().add(
+        userId: userId,
         amount: parsed,
         category: _selectedCategory,
         description: _descriptionController.text.trim(),

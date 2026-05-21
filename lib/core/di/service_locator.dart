@@ -1,19 +1,30 @@
+import 'package:fin_track/data/database/app_database.dart';
+import 'package:fin_track/data/repositories/transaction_repository.dart';
 import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
 import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
 import 'package:fin_track/features/catalogo/state/preferences_provider.dart';
 import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sqflite/sqflite.dart' hide Transaction;
 
 final getIt = GetIt.instance;
 
-void setupDependencies() {
+Future<void> setupDependencies() async {
   if (getIt.isRegistered<AuthProvider>()) {
     return;
   }
 
+  final db = await AppDatabase.getInstance();
+
+  getIt.registerSingleton<Database>(db);
+  getIt.registerLazySingleton<TransactionRepository>(
+    () => TransactionRepository(getIt<Database>()),
+  );
+
   getIt.registerLazySingleton<AuthProvider>(() => AuthProvider());
   getIt.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(
+      repository: getIt<TransactionRepository>(),
       seed: [
         Transaction(
           id: 't1',

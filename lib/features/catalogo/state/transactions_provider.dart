@@ -1,16 +1,22 @@
+import 'package:fin_track/data/repositories/transaction_repository.dart';
 import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
 import 'package:flutter/foundation.dart';
 
 class TransactionsProvider extends ChangeNotifier {
-  TransactionsProvider({List<Transaction>? seed})
-    : _seed = List<Transaction>.unmodifiable(seed ?? const []);
+  TransactionsProvider({
+    required TransactionRepository repository,
+    List<Transaction>? seed,
+  }) : _repository = repository,
+       _seed = List<Transaction>.unmodifiable(seed ?? const []);
+
+  final TransactionRepository _repository;
 
   final List<Transaction> _seed;
 
   final List<Transaction> _items = [];
   String _categoryFilter = '';
   bool _loading = false;
-  bool _loaded = false;
+  String? _loadedUserId;
   String? _error;
 
   List<Transaction> get items {
@@ -46,19 +52,22 @@ class TransactionsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> load() async {
-    if (_loading || _loaded) return;
+  Future<void> load({required String userId, bool forceReload = false}) async {
+    if (_loading) return;
+    if (!forceReload && _loadedUserId == userId) return;
 
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await _repository.seedIfEmpty(userId: userId, seed: _seed);
+      final loaded = await _repository.getAll(userId: userId);
+
       _items
         ..clear()
-        ..addAll(_seed);
-      _loaded = true;
+        ..addAll(loaded);
+      _loadedUserId = userId;
     } catch (e) {
       _error = 'Erro ao carregar transações: $e';
     } finally {
@@ -68,6 +77,7 @@ class TransactionsProvider extends ChangeNotifier {
   }
 
   Future<void> add({
+    required String userId,
     required double amount,
     required String category,
     required String description,
@@ -81,12 +91,26 @@ class TransactionsProvider extends ChangeNotifier {
       createdAt: createdAt,
     );
 
-    _items.insert(0, tx);
-    notifyListeners();
+    try {
+      await _repository.upsert(userId: userId, tx: tx);
+      _items.insert(0, tx);
+      _error = null;
+    } catch (e) {
+      _error = 'Erro ao salvar transação: $e';
+    } finally {
+      notifyListeners();
+    }
   }
 
-  void removeById(String id) {
-    _items.removeWhere((t) => t.id == id);
-    notifyListeners();
+  Future<void> removeById({required String userId, required String id}) async {
+    try {
+      await _repository.deleteById(userId: userId, id: id);
+      _items.removeWhere((t) => t.id == id);
+      _error = null;
+    } catch (e) {
+      _error = 'Erro ao remover transação: $e';
+    } finally {
+      notifyListeners();
+    }
   }
 }

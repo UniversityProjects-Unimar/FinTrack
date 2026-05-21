@@ -1,14 +1,24 @@
+import 'dart:io';
+
 import 'package:fin_track/core/di/service_locator.dart';
 import 'package:fin_track/core/router/app_router.dart';
 import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
 import 'package:fin_track/features/catalogo/state/preferences_provider.dart';
 import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  setupDependencies();
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
+  await setupDependencies();
   runApp(const MyApp());
 }
 
