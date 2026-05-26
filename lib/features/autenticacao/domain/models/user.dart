@@ -8,7 +8,7 @@ class User {
     this.updatedAt,
   });
 
-  final String id;
+  final int id;
   final String name;
   final String email;
   final String currencyCode;
@@ -17,7 +17,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as String,
+      id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       email: json['email'] as String,
       currencyCode: json['currency_code'] as String,
@@ -39,8 +39,32 @@ class User {
     };
   }
 
+  factory User.fromSqliteMap(Map<String, dynamic> map) {
+    return User(
+      id: (map['id'] as num).toInt(),
+      name: map['name'] as String,
+      email: map['email'] as String,
+      currencyCode: map['currency_code'] as String,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toSqliteMap() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'currency_code': currencyCode,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+
   User copyWith({
-    String? id,
+    int? id,
     String? name,
     String? email,
     String? currencyCode,

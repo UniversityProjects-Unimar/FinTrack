@@ -16,7 +16,7 @@ class TransactionsProvider extends ChangeNotifier {
   final List<Transaction> _items = [];
   String _categoryFilter = '';
   bool _loading = false;
-  String? _loadedUserId;
+  int? _loadedUserId;
   String? _error;
 
   List<Transaction> get items {
@@ -52,7 +52,7 @@ class TransactionsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> load({required String userId, bool forceReload = false}) async {
+  Future<void> load({required int userId, bool forceReload = false}) async {
     if (_loading) return;
     if (!forceReload && _loadedUserId == userId) return;
 
@@ -77,7 +77,7 @@ class TransactionsProvider extends ChangeNotifier {
   }
 
   Future<void> add({
-    required String userId,
+    required int userId,
     required double amount,
     required String category,
     required String description,
@@ -102,7 +102,7 @@ class TransactionsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> removeById({required String userId, required String id}) async {
+  Future<void> removeById({required int userId, required String id}) async {
     try {
       await _repository.deleteById(userId: userId, id: id);
       _items.removeWhere((t) => t.id == id);

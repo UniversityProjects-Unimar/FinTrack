@@ -7,7 +7,7 @@ class TransactionRepository {
   final Database _db;
 
   Future<Transaction> create({
-    required String userId,
+    required int userId,
     required Transaction tx,
   }) async {
     await _db.insert(
@@ -19,7 +19,7 @@ class TransactionRepository {
     return tx;
   }
 
-  Future<List<Transaction>> getAll({required String userId}) async {
+  Future<List<Transaction>> getAll({required int userId}) async {
     final maps = await _db.query(
       'transactions',
       where: 'user_id = ?',
@@ -31,7 +31,7 @@ class TransactionRepository {
   }
 
   Future<Transaction?> getById({
-    required String userId,
+    required int userId,
     required String id,
   }) async {
     final maps = await _db.query(
@@ -46,7 +46,7 @@ class TransactionRepository {
   }
 
   Future<Transaction> upsert({
-    required String userId,
+    required int userId,
     required Transaction tx,
   }) async {
     await _db.insert(
@@ -58,7 +58,7 @@ class TransactionRepository {
     return tx;
   }
 
-  Future<void> update({required String userId, required Transaction tx}) async {
+  Future<void> update({required int userId, required Transaction tx}) async {
     await _db.update(
       'transactions',
       tx.toSimpleSqliteMap(userId: userId),
@@ -67,7 +67,7 @@ class TransactionRepository {
     );
   }
 
-  Future<void> deleteById({required String userId, required String id}) async {
+  Future<void> deleteById({required int userId, required String id}) async {
     await _db.delete(
       'transactions',
       where: 'user_id = ? AND id = ?',
@@ -75,7 +75,7 @@ class TransactionRepository {
     );
   }
 
-  Future<int> count({required String userId}) async {
+  Future<int> count({required int userId}) async {
     final result = await _db.rawQuery(
       'SELECT COUNT(*) as total FROM transactions WHERE user_id = ?',
       [userId],
@@ -84,7 +84,7 @@ class TransactionRepository {
   }
 
   Future<void> seedIfEmpty({
-    required String userId,
+    required int userId,
     required List<Transaction> seed,
   }) async {
     if (seed.isEmpty) return;

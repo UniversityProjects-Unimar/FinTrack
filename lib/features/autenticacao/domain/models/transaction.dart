@@ -13,7 +13,7 @@ class Transaction {
   final String description;
   final DateTime createdAt;
 
-  Map<String, dynamic> toSimpleSqliteMap({required String userId}) {
+  Map<String, dynamic> toSimpleSqliteMap({required int userId}) {
     return {
       'id': id,
       'user_id': userId,

@@ -36,8 +36,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      context.read<AuthProvider>().login(email: _emailController.text.trim());
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        final ok = await context
+            .read<AuthProvider>()
+            .login(email: _emailController.text.trim());
+        if (!ok && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Usuário não encontrado.')),
+          );
+        }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
