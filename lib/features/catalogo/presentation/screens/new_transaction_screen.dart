@@ -20,10 +20,46 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
   final _categoryFocus = FocusNode();
   final _descriptionFocus = FocusNode();
 
+  bool _isIncome = false;
   String _selectedCategory = 'Mercado';
   DateTime _selectedDate = DateTime.now();
 
   bool _isSaving = false;
+
+  double? _parseAmount(String input) {
+    final text = input.trim().replaceAll(' ', '');
+    if (text.isEmpty) return null;
+    if (!RegExp(r'^[0-9.,]+$').hasMatch(text)) return null;
+
+    final lastComma = text.lastIndexOf(',');
+    final lastDot = text.lastIndexOf('.');
+
+    String normalized;
+
+    if (lastComma != -1 && lastDot != -1) {
+      if (lastComma > lastDot) {
+        normalized = text.replaceAll('.', '').replaceAll(',', '.');
+      } else {
+        normalized = text.replaceAll(',', '');
+      }
+    } else if (lastComma != -1) {
+      final digitsAfter = text.length - lastComma - 1;
+      if (digitsAfter == 0) return null;
+
+      normalized = digitsAfter == 3
+          ? text.replaceAll(',', '')
+          : text.replaceAll(',', '.');
+    } else if (lastDot != -1) {
+      final digitsAfter = text.length - lastDot - 1;
+      if (digitsAfter == 0) return null;
+
+      normalized = digitsAfter == 3 ? text.replaceAll('.', '') : text;
+    } else {
+      normalized = text;
+    }
+
+    return double.tryParse(normalized);
+  }
 
   @override
   void dispose() {
@@ -38,6 +74,28 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
   Widget build(BuildContext context) {
     final isSmall = MediaQuery.of(context).size.width < 360;
 
+    final categories = _isIncome
+        ? const <String>[
+            'Salário',
+            'Freelance',
+            'Investimentos',
+            'Reembolso',
+            'Outros ganhos',
+          ]
+        : const <String>[
+            'Mercado',
+            'Transporte',
+            'Lazer',
+            'Saúde',
+            'Casa',
+            'Educação',
+            'Assinaturas',
+          ];
+
+    if (!categories.contains(_selectedCategory)) {
+      _selectedCategory = categories.first;
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Nova transação')),
       body: SingleChildScrollView(
@@ -48,6 +106,43 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Gasto'),
+                          selected: !_isIncome,
+                          onSelected: (selected) {
+                            if (!selected) return;
+                            setState(() {
+                              _isIncome = false;
+                              _selectedCategory = 'Mercado';
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Ganho'),
+                          selected: _isIncome,
+                          onSelected: (selected) {
+                            if (!selected) return;
+                            setState(() {
+                              _isIncome = true;
+                              _selectedCategory = 'Salário';
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _valueController,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -73,10 +168,7 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
                     return 'Informe o valor';
                   }
 
-                  final normalized = text
-                      .replaceAll('.', '')
-                      .replaceAll(',', '.');
-                  final parsed = double.tryParse(normalized);
+                  final parsed = _parseAmount(text);
                   if (parsed == null) {
                     return 'Informe um valor válido';
                   }
@@ -90,14 +182,9 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
                 focusNode: _categoryFocus,
-                items: const [
-                  DropdownMenuItem(value: 'Mercado', child: Text('Mercado')),
-                  DropdownMenuItem(
-                    value: 'Transporte',
-                    child: Text('Transporte'),
-                  ),
-                  DropdownMenuItem(value: 'Lazer', child: Text('Lazer')),
-                  DropdownMenuItem(value: 'Saúde', child: Text('Saúde')),
+                items: [
+                  for (final c in categories)
+                    DropdownMenuItem(value: c, child: Text(c)),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -182,20 +269,25 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
-
-      final valueText = _valueController.text.trim();
-      final normalized = valueText.replaceAll('.', '').replaceAll(',', '.');
-      final parsed = double.parse(normalized);
-
-      final userId = context.read<AuthProvider>().user?.id;
+      final auth = context.read<AuthProvider>();
+      final txProvider = context.read<TransactionsProvider>();
+      final userId = auth.user?.id;
       if (userId == null) {
         throw StateError('Usuário não autenticado.');
       }
 
-      await context.read<TransactionsProvider>().add(
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+
+      final valueText = _valueController.text.trim();
+      final parsed = _parseAmount(valueText);
+      if (parsed == null) {
+        throw StateError('Valor inválido.');
+      }
+      final signedAmount = _isIncome ? parsed : -parsed;
+
+      await txProvider.add(
         userId: userId,
-        amount: parsed,
+        amount: signedAmount,
         category: _selectedCategory,
         description: _descriptionController.text.trim(),
         createdAt: _selectedDate,

@@ -1,7 +1,8 @@
 import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
+import 'package:fin_track/features/catalogo/domain/repositories/i_transaction_repository.dart';
 import 'package:sqflite/sqflite.dart' hide Transaction;
 
-class TransactionRepository {
+class TransactionRepository implements ITransactionRepository {
   TransactionRepository(this._db);
 
   final Database _db;
@@ -19,7 +20,11 @@ class TransactionRepository {
     return tx;
   }
 
-  Future<List<Transaction>> getAll({required int userId}) async {
+  @override
+  Future<List<Transaction>> getAll({
+    required int userId,
+    bool forceRefresh = false,
+  }) async {
     final maps = await _db.query(
       'transactions',
       where: 'user_id = ?',
@@ -45,6 +50,7 @@ class TransactionRepository {
     return Transaction.fromSimpleSqliteMap(maps.first);
   }
 
+  @override
   Future<Transaction> upsert({
     required int userId,
     required Transaction tx,
@@ -67,6 +73,7 @@ class TransactionRepository {
     );
   }
 
+  @override
   Future<void> deleteById({required int userId, required String id}) async {
     await _db.delete(
       'transactions',
@@ -83,6 +90,7 @@ class TransactionRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  @override
   Future<void> seedIfEmpty({
     required int userId,
     required List<Transaction> seed,
@@ -98,6 +106,27 @@ class TransactionRepository {
           'transactions',
           tx.toSimpleSqliteMap(userId: userId),
           conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    });
+  }
+
+  Future<void> replaceAll({
+    required int userId,
+    required List<Transaction> items,
+  }) async {
+    await _db.transaction((txn) async {
+      await txn.delete(
+        'transactions',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+
+      for (final tx in items) {
+        await txn.insert(
+          'transactions',
+          tx.toSimpleSqliteMap(userId: userId),
+          conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
     });

@@ -1,7 +1,8 @@
 import 'package:fin_track/features/autenticacao/domain/models/user.dart';
+import 'package:fin_track/features/autenticacao/domain/repositories/i_user_repository.dart';
 import 'package:sqflite/sqflite.dart';
 
-class UserRepository {
+class UserRepository implements IUserRepository {
   UserRepository(this._db);
 
   final Database _db;
@@ -21,7 +22,8 @@ class UserRepository {
     return user.id > 0 ? user : user.copyWith(id: id);
   }
 
-  Future<User?> getById({required int id}) async {
+  @override
+  Future<User?> getById({required int id, bool forceRefresh = false}) async {
     final maps = await _db.query(
       'users',
       where: 'id = ?',
@@ -33,6 +35,7 @@ class UserRepository {
     return User.fromSqliteMap(maps.first);
   }
 
+  @override
   Future<User?> getByEmail({required String email}) async {
     final maps = await _db.query(
       'users',
@@ -45,12 +48,9 @@ class UserRepository {
     return User.fromSqliteMap(maps.first);
   }
 
-  Future<User?> getFirst() async {
-    final maps = await _db.query(
-      'users',
-      orderBy: 'id ASC',
-      limit: 1,
-    );
+  @override
+  Future<User?> getFirst({bool forceRefresh = false}) async {
+    final maps = await _db.query('users', orderBy: 'id ASC', limit: 1);
 
     if (maps.isEmpty) return null;
     return User.fromSqliteMap(maps.first);
@@ -61,6 +61,7 @@ class UserRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  @override
   Future<void> seedIfEmpty({required User user}) async {
     final existing = await count();
     if (existing > 0) return;
@@ -68,6 +69,7 @@ class UserRepository {
     await create(user: user);
   }
 
+  @override
   Future<User> upsert({required User user}) async {
     await _db.insert(
       'users',

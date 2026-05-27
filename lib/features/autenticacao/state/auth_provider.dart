@@ -1,12 +1,12 @@
 import 'package:fin_track/core/models/logged_user.dart';
-import 'package:fin_track/data/repositories/user_repository.dart';
+import 'package:fin_track/features/autenticacao/domain/repositories/i_user_repository.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({required UserRepository userRepository})
+  AuthProvider({required IUserRepository userRepository})
     : _userRepository = userRepository;
 
-  final UserRepository _userRepository;
+  final IUserRepository _userRepository;
   LoggedUser? _user;
 
   LoggedUser? get user => _user;

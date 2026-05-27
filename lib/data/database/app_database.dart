@@ -2,7 +2,7 @@ import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
 class AppDatabase {
-  static const int version = 4;
+  static const int version = 5;
   static const String dbName = 'fintrack.db';
 
   static Database? _db;
@@ -15,8 +15,6 @@ class AppDatabase {
 
     final databasesDir = await getDatabasesPath();
     final dbPath = path.join(databasesDir, dbName);
-    // Print database path to help locate the file on disk.
-    // ignore: avoid_print
     print('SQLite DB path: $dbPath');
 
     _db = await openDatabase(
@@ -44,6 +42,12 @@ class AppDatabase {
             for (final stmt in _sqlCreateIndexes) {
               await txn.execute(stmt);
             }
+          });
+        }
+
+        if (oldVersion >= 4 && oldVersion < 5) {
+          await db.transaction((txn) async {
+            await txn.execute('UPDATE transactions SET amount = -amount');
           });
         }
       },

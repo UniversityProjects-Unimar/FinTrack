@@ -1,15 +1,15 @@
-import 'package:fin_track/data/repositories/transaction_repository.dart';
 import 'package:fin_track/features/autenticacao/domain/models/transaction.dart';
+import 'package:fin_track/features/catalogo/domain/repositories/i_transaction_repository.dart';
 import 'package:flutter/foundation.dart';
 
 class TransactionsProvider extends ChangeNotifier {
   TransactionsProvider({
-    required TransactionRepository repository,
+    required ITransactionRepository repository,
     List<Transaction>? seed,
   }) : _repository = repository,
        _seed = List<Transaction>.unmodifiable(seed ?? const []);
 
-  final TransactionRepository _repository;
+  final ITransactionRepository _repository;
 
   final List<Transaction> _seed;
 
@@ -27,6 +27,10 @@ class TransactionsProvider extends ChangeNotifier {
     return List<Transaction>.unmodifiable(
       _items.where((t) => t.category == _categoryFilter),
     );
+  }
+
+  List<Transaction> get allItems {
+    return List<Transaction>.unmodifiable(_items);
   }
 
   String get categoryFilter => _categoryFilter;
@@ -62,7 +66,10 @@ class TransactionsProvider extends ChangeNotifier {
 
     try {
       await _repository.seedIfEmpty(userId: userId, seed: _seed);
-      final loaded = await _repository.getAll(userId: userId);
+      final loaded = await _repository.getAll(
+        userId: userId,
+        forceRefresh: forceReload,
+      );
 
       _items
         ..clear()

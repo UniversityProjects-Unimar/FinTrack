@@ -12,6 +12,28 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String _formatDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year.toString();
+    return '$day/$month/$year';
+  }
+
+  String _formatMoney(double value) {
+    final sign = value < 0 ? '-' : '';
+    final abs = value.abs();
+    final text = abs.toStringAsFixed(2).replaceAll('.', ',');
+    return '${sign}R\$ $text';
+  }
+
+  String _formatTxAmount(double amount) {
+    final absText = amount.abs().toStringAsFixed(2).replaceAll('.', ',');
+    if (amount >= 0) {
+      return 'R\$ $absText';
+    }
+    return '-R\$ $absText';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,109 +75,142 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDashboard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<TransactionsProvider>(
+      builder: (context, store, child) {
+        final allItems = store.allItems;
+        final receitas = allItems
+            .where((t) => t.amount > 0)
+            .fold<double>(0, (sum, t) => sum + t.amount);
+        final despesas = allItems
+            .where((t) => t.amount < 0)
+            .fold<double>(0, (sum, t) => sum + t.amount.abs());
+        final saldo = receitas - despesas;
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Saldo total'),
+                      Text(
+                        _formatMoney(saldo),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  const Text('Saldo total'),
-                  Text(
-                    'R\$ 2.460,00',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Receitas',
+                      value: _formatMoney(receitas),
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Despesas',
+                      value: _formatMoney(despesas),
+                      color: Colors.red,
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: const [
+              const SizedBox(height: 16),
+              const _CategoryFilters(),
+              const SizedBox(height: 12),
               Expanded(
-                child: _SummaryCard(
-                  title: 'Receitas',
-                  value: 'R\$ 3.200,00',
-                  color: Colors.green,
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'Despesas',
-                  value: 'R\$ 740,00',
-                  color: Colors.red,
+                child: Builder(
+                  builder: (context) {
+                    if (store.loading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (store.error != null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48),
+                            const SizedBox(height: 8),
+                            Text(store.error!),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  context.read<TransactionsProvider>().load(
+                                    userId: context
+                                        .read<AuthProvider>()
+                                        .user!
+                                        .id,
+                                    forceReload: true,
+                                  ),
+                              child: const Text('Tentar novamente'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final items = store.items;
+                    if (items.isEmpty) {
+                      return const Center(
+                        child: Text('Nenhuma transação encontrada.'),
+                      );
+                    }
+
+                    return ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final surface = Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest;
+                        final dateText = _formatDate(item.createdAt);
+                        final descriptionText = item.description.trim();
+                        final subtitleText = descriptionText.isEmpty
+                            ? dateText
+                            : '$descriptionText • $dateText';
+
+                        return ListTile(
+                          tileColor: surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.attach_money),
+                          ),
+                          title: Text(item.category),
+                          subtitle: Text(subtitleText),
+                          trailing: Text(
+                            _formatTxAmount(item.amount),
+                            style: TextStyle(
+                              color: item.amount >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const _CategoryFilters(),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Consumer<TransactionsProvider>(
-              builder: (context, store, child) {
-                if (store.loading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (store.error != null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48),
-                        const SizedBox(height: 8),
-                        Text(store.error!),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () =>
-                              context.read<TransactionsProvider>().load(
-                                userId: context.read<AuthProvider>().user!.id,
-                                forceReload: true,
-                              ),
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final items = store.items;
-                if (items.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhuma transação encontrada.'),
-                  );
-                }
-
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      tileColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.attach_money),
-                      ),
-                      title: Text(item.category),
-                      subtitle: Text(item.description),
-                      trailing: Text('R\$ ${item.amount.toStringAsFixed(2)}'),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

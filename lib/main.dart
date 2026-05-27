@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:fin_track/core/di/service_locator.dart';
 import 'package:fin_track/core/router/app_router.dart';
 import 'package:fin_track/features/autenticacao/state/auth_provider.dart';
-import 'package:fin_track/features/catalogo/state/preferences_provider.dart';
 import 'package:fin_track/features/catalogo/state/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +26,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lightTheme = ThemeData(
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+      useMaterial3: true,
+    );
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(
@@ -35,31 +40,13 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<TransactionsProvider>.value(
           value: getIt<TransactionsProvider>(),
         ),
-        ChangeNotifierProvider<PreferencesProvider>.value(
-          value: getIt<PreferencesProvider>(),
-        ),
       ],
-      child: Builder(
-        builder: (context) {
-          final prefs = context.watch<PreferencesProvider>();
-          return MaterialApp.router(
-            debugShowCheckedModeBanner: false,
-            title: 'FinTrack',
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.green,
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-            ),
-            themeMode: prefs.themeMode,
-            routerConfig: AppRouter.router,
-          );
-        },
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        title: 'FinTrack',
+        theme: lightTheme,
+        darkTheme: lightTheme,
+        routerConfig: AppRouter.router,
       ),
     );
   }
